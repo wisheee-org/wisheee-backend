@@ -1,0 +1,16 @@
+node_modules/
+
+.agents/
+.claude/
+.windsurf/
+
+.env
+.env.*
+
+combined.log
+error.log
+
+dist/
+coverage/
+
+src/generated/prisma/

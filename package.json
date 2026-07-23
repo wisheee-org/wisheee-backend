@@ -1,0 +1,23 @@
+{
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "start": ""
+  },
+  "type": "module",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.9.0",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.9.0",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
+  }
+}

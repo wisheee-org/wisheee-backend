@@ -1,0 +1,14 @@
+// after creating new token await prisma.emailVerificationToken.deleteMany({where: {userId}})
+
+model EmailVerificationToken {
+  id        String @id @default(cuid())
+  tokenHash String @unique
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_verification_tokens")
+}
