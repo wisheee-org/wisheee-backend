@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { AuthService } from "./auth.service";
+import { AuthService } from "./services/auth.service";
 import { SignUpSchema } from "./auth.validation";
 
 export class AuthController {
