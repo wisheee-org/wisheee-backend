@@ -1,13 +1,19 @@
 import type { NextFunction, Request, Response } from "express";
 import { AuthService } from "./auth.service";
+import { SignUpSchema } from "./auth.validation";
 
 export class AuthController {
   private authService = new AuthService();
 
   signUp = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const user = await this.authService.signUp(req.body);
-      res.status(201).json(user);
+      const dto = SignUpSchema.parse(req.body);
+      const user = await this.authService.signUp(dto);
+
+      return res.status(201).json({
+        message: "Пользователь создан",
+        data: user,
+      });
     } catch (e) {
       next(e);
     }
