@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { AuthService } from "./services/auth.service";
-import { SignUpSchema, TokenSchema } from "./auth.validation";
+import { EmailSchema, SignUpSchema, TokenSchema } from "./auth.validation";
 
 export class AuthController {
   private authService = new AuthService();
@@ -31,7 +31,20 @@ export class AuthController {
     }
   };
 
-  async login(req: Request, res: Response) {}
-  async refresh(req: Request, res: Response) {}
-  async logout(req: Request, res: Response) {}
+  resendVerification = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const dto = EmailSchema.parse(req.body);
+      await this.authService.resendVerification(dto.email);
+
+      return res.status(200).json({
+        message: "Если указанный email существует и еще не подтвержден, письмо отправлено.",
+      });
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  // async login(req: Request, res: Response) {}
+  // async refresh(req: Request, res: Response) {}
+  // async logout(req: Request, res: Response) {}
 }

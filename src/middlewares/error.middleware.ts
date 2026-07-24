@@ -1,14 +1,14 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { logger } from "@/config/log";
 import { AppError } from "@/common/errors/app-error";
-import z from "zod";
+import { ZodError } from "zod";
 
-export function errorMiddleware(err: Error, req: Request, res: Response) {
+export function errorMiddleware(err: Error, req: Request, res: Response, next: NextFunction) {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ message: err.message, code: err.code });
   }
-  if (err instanceof z.ZodError) {
+  if (err instanceof ZodError) {
     const errors = Object.fromEntries(err.issues.map((issue) => [issue.path.join("."), issue.message]));
 
     return res.status(400).json({

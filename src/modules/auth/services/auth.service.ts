@@ -5,7 +5,6 @@ import { PasswordService } from "@/modules/auth/services/password.service";
 import { VerificationTokenService } from "@/modules/auth/services/verification-token.service";
 import { MailService } from "./mail.service";
 import { BadRequestError } from "@/common/errors/bad-request-error";
-import type { PublicUser } from "../../../common/types/user.type";
 
 export class AuthService {
   private prisma = prisma;
@@ -58,30 +57,37 @@ export class AuthService {
     this.mailService.sendVerificationEmail(user.email, token);
   };
 
-  async verifyEmail(token: string) {
+  verifyEmail = async (token: string) => {
     const tokenHash = this.verificationTokenService.hash(token);
 
-    await this.prisma.$transaction(async (tx) => {
-      const tokenData = await tx.emailVerificationToken.findUnique({
-        where: {
-          tokenHash,
-        },
-        select: {
-          id: true,
-          expiresAt: true,
-          user: {
-            select: {
-              id: true,
-              emailVerified: true,
-            },
+    const tokenData = await this.prisma.emailVerificationToken.findUnique({
+      where: {
+        tokenHash,
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+        user: {
+          select: {
+            id: true,
+            emailVerified: true,
           },
         },
+      },
+    });
+
+    if (!tokenData) throw new BadRequestError("INVALID_TOKEN", "Недействительный токен подтверждения.");
+    if (tokenData.expiresAt < new Date()) {
+      await this.prisma.emailVerificationToken.delete({
+        where: {
+          id: tokenData.id,
+        },
       });
+      throw new ConflictError("TOKEN_IS_EXPIRED", "Токен устарел.");
+    }
+    if (tokenData?.user.emailVerified) throw new ConflictError("EMAIL_ALREADY_VERIFIED", "Email уже подтвержден.");
 
-      if (!tokenData) throw new BadRequestError("INVALID_TOKEN", "Недействительный токен подтверждения.");
-      if (tokenData.expiresAt < new Date()) throw new ConflictError("TOKEN_IS_EXPIRED", "Токен устарел.");
-      if (tokenData?.user.emailVerified) throw new ConflictError("EMAIL_ALREADY_VERIFIED", "Email уже подтвержден.");
-
+    await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: {
           id: tokenData.user.id,
@@ -105,5 +111,40 @@ export class AuthService {
         },
       });
     });
-  }
+  };
+
+  resendVerification = async (email: string) => {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        id: true,
+        emailVerified: true,
+      },
+    });
+
+    if (!user || user.emailVerified) return;
+
+    const token = this.verificationTokenService.generateVerificationToken();
+    const tokenHash = this.verificationTokenService.hash(token);
+    const expiresAt = this.verificationTokenService.getExpiresAt();
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.emailVerificationToken.deleteMany({
+        where: {
+          userId: user.id,
+        },
+      });
+      await tx.emailVerificationToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+    });
+
+    await this.mailService.sendVerificationEmail(email, token);
+  };
 }
