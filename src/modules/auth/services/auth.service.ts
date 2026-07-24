@@ -23,9 +23,7 @@ export class AuthService {
 
     const passwordHash = await this.passwordService.hash(dto.password);
 
-    const token = this.verificationTokenService.generateVerificationToken();
-    const tokenHash = this.verificationTokenService.hash(token);
-    const expiresAt = this.verificationTokenService.getExpiresAt();
+    const { token, tokenHash, expiresAt } = this.verificationTokenService.generate();
 
     const user = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -126,9 +124,7 @@ export class AuthService {
 
     if (!user || user.emailVerified) return;
 
-    const token = this.verificationTokenService.generateVerificationToken();
-    const tokenHash = this.verificationTokenService.hash(token);
-    const expiresAt = this.verificationTokenService.getExpiresAt();
+    const { token, tokenHash, expiresAt } = this.verificationTokenService.generate();
 
     await this.prisma.$transaction(async (tx) => {
       await tx.emailVerificationToken.deleteMany({
