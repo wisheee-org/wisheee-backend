@@ -5,8 +5,10 @@ import helmet from "helmet";
 import { logger } from "@/config/log";
 import { authRouter } from "@/modules/auth/auth.routes";
 import { errorMiddleware } from "@/middlewares/error.middleware";
+import cookieParser from "cookie-parser";
 
 const app = express();
+app.use(cookieParser());
 
 async function main() {
   app.use(helmet());

@@ -8,16 +8,16 @@ import { BadRequestError } from "@/common/errors/bad-request-error";
 import { authUserSelect, publicUserSelect, type AuthTokens, type SignInResponseDto } from "./../auth.responses";
 import { UnauthorizedError } from "@/common/errors/unauthorized-error";
 import { ForbiddenError } from "@/common/errors/forbidden-error";
-import { JwtService, type TokenPayload } from "./jwt.service";
 import { CryptoService } from "./crypto.service";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { jwtService } from "./jwt.service";
 
 export class AuthService {
   private prisma = prisma;
+  private jwtService = jwtService;
   private passwordService = new PasswordService();
   private verificationTokenService = new VerificationTokenService();
   private mailService = new MailService();
-  private jwtService = new JwtService();
   private cryptoService = new CryptoService();
 
   async signUp(dto: SignUpSchemaType) {
@@ -158,7 +158,7 @@ export class AuthService {
 
     const { passwordHash, ...publicUser } = user;
 
-    const { accessToken, refreshToken } = await this._createTokens(this.prisma, { userId: publicUser.id });
+    const { accessToken, refreshToken } = await this._createTokens(this.prisma, publicUser.id);
 
     return { user: publicUser, accessToken, refreshToken };
   }
@@ -192,7 +192,7 @@ export class AuthService {
           tokenHash: tokenData.tokenHash,
         },
       });
-      return await this._createTokens(tx, { userId: tokenData.userId });
+      return await this._createTokens(tx, tokenData.userId);
     });
   }
 
@@ -205,13 +205,13 @@ export class AuthService {
     });
   }
 
-  private async _createTokens(db: Prisma.TransactionClient | PrismaClient, payload: TokenPayload): Promise<AuthTokens> {
-    const { accessToken, refreshTokenData } = this.jwtService.generateTokens(payload);
+  private async _createTokens(db: Prisma.TransactionClient | PrismaClient, userId: string): Promise<AuthTokens> {
+    const { accessToken, refreshTokenData } = this.jwtService.generateTokens({ sub: userId });
 
     const refreshTokenHash = this.cryptoService.sha256(refreshTokenData.token);
     await db.refreshToken.create({
       data: {
-        userId: payload.userId,
+        userId,
         tokenHash: refreshTokenHash,
         expiresAt: refreshTokenData.expiresAt,
       },
