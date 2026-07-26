@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { AuthService } from "./services/auth.service";
-import { EmailSchema, SignUpSchema, TokenSchema } from "./auth.validation";
+import { EmailSchema, SignInSchema, SignUpSchema, TokenSchema } from "./auth.validation";
 
 export class AuthController {
   private authService = new AuthService();
@@ -44,7 +44,41 @@ export class AuthController {
     }
   };
 
-  // async login(req: Request, res: Response) {}
-  // async refresh(req: Request, res: Response) {}
-  // async logout(req: Request, res: Response) {}
+  signIn = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const dto = SignInSchema.parse(req.body);
+      const data = await this.authService.signIn(dto);
+
+      return res.status(200).json({
+        message: "Вход выполнен успешно.",
+        data,
+      });
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  refresh = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      const data = await this.authService.refresh(refreshToken);
+
+      return res.status(200).json({
+        data,
+      });
+    } catch (e) {
+      next(e);
+    }
+  };
+
+  logout = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      const data = await this.authService.logout(refreshToken);
+
+      return res.status(204).json({ message: "Выход выполнен успешно." });
+    } catch (e) {
+      next(e);
+    }
+  };
 }

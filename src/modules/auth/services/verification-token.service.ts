@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import { CryptoService } from "./crypto.service";
 
 const VERIFICATION_TOKEN_TTL_MS = Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL ?? 15 * 60 * 1000);
 
@@ -9,16 +9,15 @@ interface VerificationTokenData {
 }
 
 export class VerificationTokenService {
+  private cryptoService = new CryptoService();
+
   generate(): VerificationTokenData {
-    const token = crypto.randomBytes(32).toString("hex");
+    const token = this.cryptoService.randomToken();
 
     return {
       token,
-      tokenHash: this.hash(token),
+      tokenHash: this.cryptoService.sha256(token),
       expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
     };
-  }
-  hash(token: string): string {
-    return crypto.createHash("sha256").update(token).digest("hex");
   }
 }

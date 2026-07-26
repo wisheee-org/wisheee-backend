@@ -1,18 +1,26 @@
 import { prisma } from "@/lib/prisma";
-import type { SignUpSchemaType } from "@/modules/auth/auth.validation";
+import type { SignInSchemaType, SignUpSchemaType } from "@/modules/auth/auth.validation";
 import { ConflictError } from "@/common/errors/conflict-error";
 import { PasswordService } from "@/modules/auth/services/password.service";
 import { VerificationTokenService } from "@/modules/auth/services/verification-token.service";
 import { MailService } from "./mail.service";
 import { BadRequestError } from "@/common/errors/bad-request-error";
+import { authUserSelect, publicUserSelect, type AuthTokens, type SignInResponseDto } from "./../auth.responses";
+import { UnauthorizedError } from "@/common/errors/unauthorized-error";
+import { ForbiddenError } from "@/common/errors/forbidden-error";
+import { JwtService, type TokenPayload } from "./jwt.service";
+import { CryptoService } from "./crypto.service";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 
 export class AuthService {
   private prisma = prisma;
   private passwordService = new PasswordService();
   private verificationTokenService = new VerificationTokenService();
   private mailService = new MailService();
+  private jwtService = new JwtService();
+  private cryptoService = new CryptoService();
 
-  signUp = async (dto: SignUpSchemaType) => {
+  async signUp(dto: SignUpSchemaType) {
     const [existingEmail, existingUsername] = await Promise.all([
       this.prisma.user.findUnique({ where: { email: dto.email } }),
       this.prisma.user.findUnique({ where: { username: dto.username } }),
@@ -32,13 +40,7 @@ export class AuthService {
           passwordHash: passwordHash,
           username: dto.username,
         },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          createdAt: true,
-          avatar: true,
-        },
+        select: publicUserSelect,
       });
 
       await tx.emailVerificationToken.create({
@@ -53,10 +55,10 @@ export class AuthService {
     });
 
     this.mailService.sendVerificationEmail(user.email, token);
-  };
+  }
 
-  verifyEmail = async (token: string) => {
-    const tokenHash = this.verificationTokenService.hash(token);
+  async verifyEmail(token: string) {
+    const tokenHash = this.cryptoService.sha256(token);
 
     const tokenData = await this.prisma.emailVerificationToken.findUnique({
       where: {
@@ -94,12 +96,8 @@ export class AuthService {
           emailVerified: true,
         },
         select: {
-          id: true,
-          email: true,
-          username: true,
-          avatar: true,
+          ...publicUserSelect,
           emailVerified: true,
-          createdAt: true,
         },
       });
 
@@ -109,9 +107,9 @@ export class AuthService {
         },
       });
     });
-  };
+  }
 
-  resendVerification = async (email: string) => {
+  async resendVerification(email: string) {
     const user = await this.prisma.user.findUnique({
       where: {
         email,
@@ -142,5 +140,86 @@ export class AuthService {
     });
 
     await this.mailService.sendVerificationEmail(email, token);
-  };
+  }
+
+  async signIn(dto: SignInSchemaType): Promise<SignInResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: dto.email,
+      },
+      select: { ...publicUserSelect, ...authUserSelect },
+    });
+
+    if (!user) throw new UnauthorizedError("INVALID_CREDENTIALS", "Неверные email или пароль.");
+    if (!user.emailVerified) throw new ForbiddenError("EMAIL_NOT_VERIFIED", "Подтвердите email перед входом.");
+
+    const isValidPassword = await this.passwordService.compare(dto.password, user.passwordHash);
+    if (!isValidPassword) throw new UnauthorizedError("INVALID_CREDENTIALS", "Неверные email или пароль.");
+
+    const { passwordHash, ...publicUser } = user;
+
+    const { accessToken, refreshToken } = await this._createTokens(this.prisma, { userId: publicUser.id });
+
+    return { user: publicUser, accessToken, refreshToken };
+  }
+
+  async refresh(refreshToken: string): Promise<AuthTokens> {
+    const tokenHash = this.cryptoService.sha256(refreshToken);
+    const tokenData = await this.prisma.refreshToken.findUnique({
+      where: {
+        tokenHash,
+      },
+      select: {
+        tokenHash: true,
+        expiresAt: true,
+        userId: true,
+      },
+    });
+
+    if (!tokenData) throw new UnauthorizedError("INVALID_REFRESH_TOKEN", "Недействительный refresh token.");
+    if (tokenData.expiresAt < new Date()) {
+      await this.prisma.refreshToken.delete({
+        where: {
+          tokenHash: tokenData.tokenHash,
+        },
+      });
+      throw new UnauthorizedError("INVALID_REFRESH_TOKEN", "Refresh token истек.");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.prisma.refreshToken.delete({
+        where: {
+          tokenHash: tokenData.tokenHash,
+        },
+      });
+      return await this._createTokens(tx, { userId: tokenData.userId });
+    });
+  }
+
+  async logout(refreshToken: string) {
+    const tokenHash = this.cryptoService.sha256(refreshToken);
+    await this.prisma.refreshToken.delete({
+      where: {
+        tokenHash,
+      },
+    });
+  }
+
+  private async _createTokens(db: Prisma.TransactionClient | PrismaClient, payload: TokenPayload): Promise<AuthTokens> {
+    const { accessToken, refreshTokenData } = this.jwtService.generateTokens(payload);
+
+    const refreshTokenHash = this.cryptoService.sha256(refreshTokenData.token);
+    await db.refreshToken.create({
+      data: {
+        userId: payload.userId,
+        tokenHash: refreshTokenHash,
+        expiresAt: refreshTokenData.expiresAt,
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken: refreshTokenData.token,
+    };
+  }
 }

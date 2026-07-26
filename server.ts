@@ -12,7 +12,7 @@ async function main() {
   app.use(helmet());
   app.use(express.json());
 
-  app.use("/api", authRouter);
+  app.use("/api/auth", authRouter);
 
   app.use(errorMiddleware);
 

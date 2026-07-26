@@ -2,11 +2,11 @@ import bcrypt from "bcrypt";
 const saltRounds = Number(process.env.SALT_ROUNDS ?? 12);
 
 export class PasswordService {
-  hash = (password: string) => {
+  async hash(password: string): Promise<string> {
     return bcrypt.hash(password, saltRounds);
-  };
+  }
 
-  compare = async (password: string, hash: string) => {
+  async compare(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
-  };
+  }
 }
