@@ -1,7 +1,6 @@
 import { UnauthorizedError } from "@/common/errors/unauthorized-error";
-import { getEnv } from "@/common/get-env-utils";
+import { ACCESS_EXPIRES_IN, ACCESS_SECRET, REFRESH_EXPIRES_IN, REFRESH_SECRET, REFRESH_TTL_MS } from "@/config/auth.config";
 import jwt from "jsonwebtoken";
-import ms, { type StringValue } from "ms";
 
 export interface TokenPayload {
   sub: string; //userId
@@ -15,12 +14,6 @@ interface RefreshTokenData {
   token: string;
   expiresAt: Date;
 }
-
-const ACCESS_SECRET = getEnv("JWT_ACCESS_SECRET");
-const REFRESH_SECRET = getEnv("JWT_REFRESH_SECRET");
-const ACCESS_EXPIRES_IN = getEnv("JWT_ACCESS_EXPIRES_IN") as StringValue;
-const REFRESH_EXPIRES_IN = getEnv("JWT_REFRESH_EXPIRES_IN") as StringValue;
-const REFRESH_TTL_MS = ms(REFRESH_EXPIRES_IN as StringValue);
 
 class JwtService {
   generateTokens(payload: TokenPayload): GeneratedAuthTokens {

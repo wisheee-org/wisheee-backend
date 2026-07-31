@@ -9,14 +9,14 @@ interface VerificationTokenData {
 }
 
 export class VerificationTokenService {
-  private cryptoService = new CryptoService();
+  private _cryptoService = new CryptoService();
 
   generate(): VerificationTokenData {
-    const token = this.cryptoService.randomToken();
+    const token = this._cryptoService.randomToken();
 
     return {
       token,
-      tokenHash: this.cryptoService.sha256(token),
+      tokenHash: this._cryptoService.sha256(token),
       expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
     };
   }

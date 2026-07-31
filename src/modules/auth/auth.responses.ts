@@ -8,11 +8,6 @@ export const publicUserSelect = {
   createdAt: true,
 } as const;
 
-export const authUserSelect = {
-  passwordHash: true,
-  emailVerified: true,
-} as const;
-
 export type PublicUserDto = Prisma.UserGetPayload<{
   select: typeof publicUserSelect;
 }>;
