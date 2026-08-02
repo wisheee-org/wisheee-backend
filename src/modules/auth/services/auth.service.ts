@@ -5,12 +5,13 @@ import { PasswordService } from "@/modules/auth/services/password.service";
 import { VerificationTokenService } from "@/modules/auth/services/verification-token.service";
 import { MailService } from "./mail.service";
 import { BadRequestError } from "@/common/errors/bad-request-error";
-import { publicUserSelect, type AuthTokens, type SignInResponseDto } from "./../auth.responses";
+import { type AuthTokens, type SignInResponseDto } from "./../auth.responses";
 import { UnauthorizedError } from "@/common/errors/unauthorized-error";
 import { ForbiddenError } from "@/common/errors/forbidden-error";
 import { CryptoService } from "./crypto.service";
-import type { Prisma, PrismaClient, User } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { jwtService } from "./jwt.service";
+import { publicUserSelect, type PublicUser } from "@/shared/prisma/user.select";
 
 export class AuthService {
   private _prisma = prisma;
@@ -20,18 +21,11 @@ export class AuthService {
   private _mailService = new MailService();
   private _cryptoService = new CryptoService();
 
-  // async me(userId: string) {
-  //   return await this._prisma.user.findUnique({
-  //     where: { id: userId },
-  //     select: publicUserSelect,
-  //   });
-  // }
-
-  async init(refreshToken: string) {
+  async init(refreshToken: string): Promise<PublicUser | null> {
     if (!refreshToken) return null;
 
     const tokenHash = this._cryptoService.sha256(refreshToken);
-    const user = await this._prisma.refreshToken.findFirst({
+    const data = await this._prisma.refreshToken.findUnique({
       where: { tokenHash },
       select: {
         user: {
@@ -39,7 +33,8 @@ export class AuthService {
         },
       },
     });
-    return user;
+    if (data) return data.user;
+    return null;
   }
 
   async signUp(dto: SignUpSchemaType) {

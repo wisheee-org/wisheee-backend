@@ -6,18 +6,6 @@ import { ACCESS_TTL_MS, REFRESH_TTL_MS } from "@/config/auth.config";
 export class AuthController {
   private _authService = new AuthService();
 
-  // me = async (req: Request, res: Response, next: NextFunction) => {
-  //   try {
-  //     const user = await this._authService.me(req.user.id);
-
-  //     return res.status(200).json({
-  //       data: user,
-  //     });
-  //   } catch (e) {
-  //     next(e);
-  //   }
-  // };
-
   init = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const refreshToken = req.cookies.refreshToken;
@@ -111,7 +99,8 @@ export class AuthController {
           httpOnly: true,
           maxAge: REFRESH_TTL_MS,
           sameSite: "lax",
-        });
+        })
+        .send();
     } catch (e) {
       next(e);
     }
