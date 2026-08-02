@@ -1,0 +1,20 @@
+model WishlistItem {
+  id String @id @default(cuid())
+
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id])
+  wishlistId String   @map("wishlist_id")
+
+  title       String
+  description String?
+  link        String?
+  price       Int
+  imageUrl    String? @map("image_url")
+
+  reserver   User?   @relation("ItemReserver", fields: [reserverId], references: [id])
+  reserverId String? @map("reserver_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("wishlist_items")
+}
