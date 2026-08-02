@@ -12,6 +12,7 @@ import { CryptoService } from "./crypto.service";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { jwtService } from "./jwt.service";
 import { publicUserSelect, type PublicUser } from "@/shared/prisma/user.select";
+import { publicWishlistSelect } from "@/modules/wishlists/wishlists.respones";
 
 export class AuthService {
   private _prisma = prisma;
@@ -163,6 +164,9 @@ export class AuthService {
     const user = await this._prisma.user.findUnique({
       where: {
         email: dto.email,
+      },
+      include: {
+        wishlists: { select: publicWishlistSelect },
       },
     });
 
