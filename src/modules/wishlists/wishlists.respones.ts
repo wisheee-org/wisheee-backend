@@ -5,6 +5,7 @@ export const publicWishlistSelect = {
   ownerId: true,
   title: true,
   description: true,
+  isPublic: true,
   createdAt: true,
 } as const;
 

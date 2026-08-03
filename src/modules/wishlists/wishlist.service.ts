@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { publicWishlistSelect, type PublicWishlistData } from "./wishlists.respones";
-import type { UpdateWishlistType, WishlistType } from "./wishlists.validation";
+import type { UpdateWishlistType, CreateWishlistType } from "./wishlists.validation";
 import { BadRequestError } from "@/common/errors/bad-request-error";
 
 export class WishlistsService {
@@ -25,7 +25,7 @@ export class WishlistsService {
     return wishlist;
   }
 
-  async create(userId: string, data: WishlistType): Promise<PublicWishlistData> {
+  async create(userId: string, data: CreateWishlistType): Promise<PublicWishlistData> {
     const wishlist = await this._prisma.wishlist.create({
       data: { ...data, ownerId: userId },
       select: publicWishlistSelect,
@@ -35,13 +35,13 @@ export class WishlistsService {
   }
 
   async update(userId: string, wishlistId: string, data: UpdateWishlistType): Promise<PublicWishlistData | null> {
-    const wishlist = this._prisma.wishlist.findFirst({
+    const wishlist = await this._prisma.wishlist.findFirst({
       where: { id: wishlistId, ownerId: userId },
     });
     if (!wishlist) return null;
 
     const updateData = {
-      ...(data.title && { title: data.title }),
+      ...(data.title !== undefined && { title: data.title }),
       ...(data.description !== undefined && { description: data.description }),
       ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
     };
