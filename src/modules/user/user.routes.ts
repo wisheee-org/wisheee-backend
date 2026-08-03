@@ -1,13 +1,14 @@
 import { Router } from "express";
-import { UserController } from "./user.controller";
+import { userController } from "./user.controller";
 import { authMiddleware } from "@/middlewares/auth.middleware";
-
-const userController = new UserController();
+import { wishlistController } from "../wishlists/wishlists.controller";
 
 const router = Router();
 
 router.get("/me", authMiddleware, userController.me);
-router.patch("/update", authMiddleware, userController.update);
+router.patch("/me", authMiddleware, userController.update);
+
 router.get("/:id", authMiddleware, userController.getById);
+router.get("/:id/wishlists", authMiddleware, wishlistController.getById);
 
 export const userRouter = router;
