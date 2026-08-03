@@ -5,7 +5,7 @@ model Wishlist {
   ownerId String @map("owner_id")
 
   title       String
-  description String?
+  description String  @default("")
   isPublic    Boolean @default(true)
 
   createdAt DateTime @default(now()) @map("created_at")
