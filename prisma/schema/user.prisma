@@ -17,5 +17,11 @@ model User {
   refreshToken           RefreshToken[]
   reservedItems          WishlistItem[]           @relation("ItemReserver")
 
+  sentFriendRequests     FriendRequest[] @relation("FriendRequester")
+  receivedFriendRequests FriendRequest[] @relation("FriendAddressee")
+
+  friendshipsInitiated Friend[] @relation("FriendUser1")
+  friendshipsReceived  Friend[] @relation("FriendUser2")
+
   @@map("users")
 }

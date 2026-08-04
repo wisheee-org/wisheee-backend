@@ -1,0 +1,31 @@
+model FriendRequest {
+  id String @id @default(cuid())
+
+  sender   User   @relation("FriendRequester", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId String @map("sender_id")
+
+  addressee   User   @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  addresseeId String @map("addressee_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([senderId, addresseeId])
+  @@map("friend_requests")
+}
+
+model Friend {
+  id String @id @default(cuid())
+
+  user1   User   @relation("FriendUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user1Id String @map("user_one")
+
+  user2   User   @relation("FriendUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  user2Id String @map("user_two")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([user1Id, user2Id])
+  @@map("friends")
+}
