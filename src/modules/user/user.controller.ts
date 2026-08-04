@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { userService } from "./user.service";
 import { BadRequestError } from "@/common/errors/bad-request-error";
-import { UpdateUserSchema } from "./user.validation";
+import { SearchUsersSchema, UpdateUserSchema, type SearchUserType } from "./user.validation";
 
 type GetByIdParams = {
   id: string;
@@ -14,6 +14,19 @@ export const userController = {
       return res.status(200).json({
         data,
       });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async search(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+      const queries = SearchUsersSchema.parse(req.query);
+
+      const data = await userService.search(userId, queries);
+
+      return res.status(200).json({ data });
     } catch (e) {
       next(e);
     }
