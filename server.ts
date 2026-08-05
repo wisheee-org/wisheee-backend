@@ -7,8 +7,10 @@ import { authRouter } from "@/modules/auth/auth.routes";
 import { errorMiddleware } from "@/middlewares/error.middleware";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { wishlistRouter } from "@/modules/wishlists/wishlists.router";
+import { wishlistRouter } from "@/modules/wishlists/wishlists.routes";
 import { userRouter } from "@/modules/user/user.routes";
+import { friendsRouter } from "@/modules/friends/friends.routes";
+import { wishlistItemRouter } from "@/modules/wishlist-item/item.routes";
 
 const app = express();
 app.use(
@@ -31,6 +33,8 @@ async function main() {
   app.use("/api/auth", authRouter);
   app.use("/api/users", userRouter);
   app.use("/api/wishlists", wishlistRouter);
+  app.use("/api/friends", friendsRouter);
+  // app.use("/api/wishlist-items", wishlistItemRouter);
 
   app.use(errorMiddleware);
 

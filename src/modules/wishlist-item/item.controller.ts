@@ -1,0 +1,53 @@
+import type { NextFunction, Request, Response } from "express";
+import { wishlistItemService } from "./item.service";
+import { CreateWishlistItemSchema, UpdateWishlistItemSchema } from "./item.validation";
+import { BadRequestError } from "@/common/errors/bad-request-error";
+
+type GetByIdParams = {
+  itemId: string;
+};
+
+export const wishlistItemController = {
+  async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+      const data = CreateWishlistItemSchema.parse(req.body);
+
+      const items = await wishlistItemService.create(data);
+
+      return res.status(200).json({ data: items });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async update(req: Request<GetByIdParams>, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+      const itemId = req.params.itemId;
+      if (!itemId) throw new BadRequestError("NO_WISHLIST_ITEM_ID", "Нет id подарка.");
+
+      const data = UpdateWishlistItemSchema.parse(req.body);
+
+      const updated = await wishlistItemService.update(userId, itemId, data);
+
+      return res.status(200).json({ data: updated });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async delete(req: Request<GetByIdParams>, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+      const itemId = req.params.itemId;
+      if (!itemId) throw new BadRequestError("NO_WISHLIST_ITEM_ID", "Нет id подарка.");
+
+      const { title } = await wishlistItemService.delete(userId, itemId);
+
+      return res.status(200).json({ message: `${title} больше не в списке желаний.` });
+    } catch (e) {
+      next(e);
+    }
+  },
+};

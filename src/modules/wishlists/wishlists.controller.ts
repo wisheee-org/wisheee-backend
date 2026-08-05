@@ -22,11 +22,11 @@ export const wishlistController = {
 
   async getById(req: Request<GetByIdParams>, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
+      const myId = req.user.id;
       const wishlistId = req.params.wishlistId;
       if (!wishlistId) throw new BadRequestError("NO_WISHLIST_ID", "Нет id вишлиста.");
 
-      const data = await wishlistsService.getById(userId, wishlistId);
+      const data = await wishlistsService.getById(myId, wishlistId);
 
       return res.status(200).json({ data });
     } catch (e) {
