@@ -7,7 +7,7 @@ model WishlistItem {
   title       String
   description String?
   link        String?
-  price       Int
+  price       Int?
   imageUrl    String? @map("image_url")
 
   reserver   User?   @relation("ItemReserver", fields: [reserverId], references: [id])
