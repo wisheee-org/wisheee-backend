@@ -15,25 +15,25 @@ interface RefreshTokenData {
   expiresAt: Date;
 }
 
-class JwtService {
+export const jwtService = {
   generateTokens(payload: TokenPayload): GeneratedAuthTokens {
     return {
       accessToken: this._generateAccessToken(payload),
       refreshTokenData: this._generateRefreshToken(payload),
     };
-  }
+  },
 
-  private _generateAccessToken(payload: TokenPayload): string {
+  _generateAccessToken(payload: TokenPayload): string {
     return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
-  }
+  },
 
-  private _generateRefreshToken(payload: TokenPayload): RefreshTokenData {
+  _generateRefreshToken(payload: TokenPayload): RefreshTokenData {
     const token = jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES_IN });
     return {
       token,
       expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
     };
-  }
+  },
 
   verifyAccessToken(token: string): TokenPayload {
     try {
@@ -43,7 +43,7 @@ class JwtService {
     } catch {
       throw new UnauthorizedError("INVALID_ACCESS_TOKEN", "Недействительный токен.");
     }
-  }
+  },
 
   verifyRefreshToken(token: string) {
     try {
@@ -53,7 +53,5 @@ class JwtService {
     } catch {
       throw new UnauthorizedError("INVALID_ACCESS_TOKEN", "Недействительный токен.");
     }
-  }
-}
-
-export const jwtService = new JwtService();
+  },
+};

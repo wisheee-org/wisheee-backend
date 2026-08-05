@@ -4,7 +4,7 @@ import { BadRequestError } from "@/common/errors/bad-request-error";
 import { SearchUsersSchema, UpdateUserSchema, type SearchUserType } from "./user.validation";
 
 type GetByIdParams = {
-  id: string;
+  userId: string;
 };
 
 export const userController = {
@@ -46,7 +46,7 @@ export const userController = {
 
   async getById(req: Request<GetByIdParams>, res: Response, next: NextFunction) {
     try {
-      const id = req.params.id;
+      const id = req.params.userId;
       if (!id) throw new BadRequestError("NO_USER_ID", "Нет id пользователя.");
       const data = await userService.getById(id);
       return res.status(200).json({ data });

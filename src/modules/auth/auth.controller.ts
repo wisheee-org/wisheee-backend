@@ -1,15 +1,13 @@
 import type { NextFunction, Request, Response } from "express";
-import { AuthService } from "./services/auth.service";
 import { EmailSchema, SignInSchema, SignUpSchema, TokenSchema } from "./auth.validation";
 import { ACCESS_TTL_MS, REFRESH_TTL_MS } from "@/config/auth.config";
+import { authService } from "./services/auth.service";
 
-export class AuthController {
-  private _authService = new AuthService();
-
-  init = async (req: Request, res: Response, next: NextFunction) => {
+export const authController = {
+  async init(req: Request, res: Response, next: NextFunction) {
     try {
       const refreshToken = req.cookies.refreshToken;
-      const data = await this._authService.init(refreshToken);
+      const data = await authService.init(refreshToken);
 
       return res.status(200).json({
         data,
@@ -17,12 +15,12 @@ export class AuthController {
     } catch (e) {
       next(e);
     }
-  };
+  },
 
-  signUp = async (req: Request, res: Response, next: NextFunction) => {
+  async signUp(req: Request, res: Response, next: NextFunction) {
     try {
       const dto = SignUpSchema.parse(req.body);
-      await this._authService.signUp(dto);
+      await authService.signUp(dto);
 
       return res.status(201).json({
         message: "Письмо для подтверждения отправлено на email.",
@@ -30,24 +28,24 @@ export class AuthController {
     } catch (e) {
       next(e);
     }
-  };
+  },
 
-  verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+  async verifyEmail(req: Request, res: Response, next: NextFunction) {
     try {
       const token = req.query.token;
       const dto = TokenSchema.parse({ token });
-      await this._authService.verifyEmail(dto.token);
+      await authService.verifyEmail(dto.token);
 
       return res.redirect(`${process.env.CLIENT_URL}/signin`);
     } catch (e) {
       next(e);
     }
-  };
+  },
 
-  resendVerification = async (req: Request, res: Response, next: NextFunction) => {
+  async resendVerification(req: Request, res: Response, next: NextFunction) {
     try {
       const dto = EmailSchema.parse(req.body);
-      await this._authService.resendVerification(dto.email);
+      await authService.resendVerification(dto.email);
 
       return res.status(200).json({
         message: "Если указанный email существует и еще не подтвержден, письмо отправлено.",
@@ -55,12 +53,12 @@ export class AuthController {
     } catch (e) {
       next(e);
     }
-  };
+  },
 
-  signIn = async (req: Request, res: Response, next: NextFunction) => {
+  async signIn(req: Request, res: Response, next: NextFunction) {
     try {
       const dto = SignInSchema.parse(req.body);
-      const { accessToken, refreshToken, user } = await this._authService.signIn(dto);
+      const { accessToken, refreshToken, user } = await authService.signIn(dto);
 
       return res
         .status(200)
@@ -81,12 +79,12 @@ export class AuthController {
     } catch (e) {
       next(e);
     }
-  };
+  },
 
-  refresh = async (req: Request, res: Response, next: NextFunction) => {
+  async refresh(req: Request, res: Response, next: NextFunction) {
     try {
       const refreshTokenCurrent = req.cookies.refreshToken;
-      const { accessToken, refreshToken } = await this._authService.refresh(refreshTokenCurrent);
+      const { accessToken, refreshToken } = await authService.refresh(refreshTokenCurrent);
 
       return res
         .status(200)
@@ -104,12 +102,12 @@ export class AuthController {
     } catch (e) {
       next(e);
     }
-  };
+  },
 
-  logout = async (req: Request, res: Response, next: NextFunction) => {
+  async logout(req: Request, res: Response, next: NextFunction) {
     try {
       const refreshToken = req.cookies.refreshToken;
-      await this._authService.logout(refreshToken);
+      await authService.logout(refreshToken);
 
       res.clearCookie("accessToken");
       res.clearCookie("refreshToken");
@@ -120,5 +118,5 @@ export class AuthController {
       res.clearCookie("refreshToken");
       next(e);
     }
-  };
-}
+  },
+};
