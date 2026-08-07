@@ -5,10 +5,10 @@ model WishlistItem {
   wishlistId String   @map("wishlist_id")
 
   title       String
-  description String?
-  link        String?
+  description String @default("")
+  link        String @default("")
   price       Int?
-  imageUrl    String? @map("image_url")
+  image       String @default("")
 
   reserver   User?   @relation("ItemReserver", fields: [reserverId], references: [id])
   reserverId String? @map("reserver_id")
