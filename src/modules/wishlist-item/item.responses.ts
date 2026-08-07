@@ -7,7 +7,7 @@ export const wishlistItemSelect = {
   description: true,
   link: true,
   price: true,
-  imageUrl: true,
+  image: true,
   reserverId: true,
   createdAt: true,
 } as const;

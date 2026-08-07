@@ -3,20 +3,21 @@ import z from "zod";
 export const CreateWishlistItemSchema = z.object({
   wishlistId: z.string().nonempty(),
   title: z.string().nonempty(),
-  description: z.string().nullable().default(null),
+  description: z.string(),
   // link: z.string().url().optional().or(z.literal(""))
-  link: z.string().nullable().default(null),
+  link: z.string(),
   price: z.coerce.number().int().nonnegative().nullable().default(null),
-  // imageUrl: z.string().url().nullable().default(null),
-  imageUrl: z.string().nullable().default(null),
+  // image: z.string().url().nullable().default(null),
+  image: z.string(),
 });
 
 export const UpdateWishlistItemSchema = z.object({
+  wishlistId: z.string().min(1).optional(),
   title: z.string().min(1).optional(),
   description: z.string().optional(),
-  link: z.string().nullable().optional(),
+  link: z.string().optional(),
   price: z.coerce.number().int().nonnegative().nullable().optional(),
-  imageUrl: z.string().nullable().optional(),
+  image: z.string().optional(),
 });
 
 export type CreateWishlistItemType = z.infer<typeof CreateWishlistItemSchema>;

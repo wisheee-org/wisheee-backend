@@ -5,9 +5,9 @@ import { authMiddleware } from "@/middlewares/auth.middleware";
 const router = Router();
 
 router.get("/", authMiddleware, wishlistController.getList);
+// router.get("/:wishlistId", authMiddleware, wishlistController.getById);
 
 router.post("/", authMiddleware, wishlistController.create);
-router.get("/:wishlistId", authMiddleware, wishlistController.getById);
 router.patch("/:wishlistId", authMiddleware, wishlistController.update);
 router.delete("/:wishlistId", authMiddleware, wishlistController.delete);
 

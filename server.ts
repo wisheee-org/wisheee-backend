@@ -34,13 +34,13 @@ async function main() {
   app.use("/api/users", userRouter);
   app.use("/api/wishlists", wishlistRouter);
   app.use("/api/friends", friendsRouter);
-  // app.use("/api/wishlist-items", wishlistItemRouter);
+  app.use("/api/wishlist-items", wishlistItemRouter);
 
   app.use(errorMiddleware);
 
   const port = process.env.PORT || 3000;
   app.listen(port, () => {
-    logger.info(`Server is running on http://localhost:${port}`);
+    // logger.info(`Server is running on http://localhost:${port}`);
   });
 }
 
