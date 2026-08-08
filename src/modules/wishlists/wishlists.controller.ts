@@ -11,8 +11,9 @@ type GetByIdParams = {
 export const wishlistController = {
   async getList(req: Request<GetByIdParams>, res: Response, next: NextFunction) {
     try {
+      const myId = req.user.id;
       const id = req.params.userId ?? req.user.id;
-      const data = await wishlistsService.getList(id);
+      const data = await wishlistsService.getList(id, myId);
 
       return res.status(200).json({ data });
     } catch (e) {

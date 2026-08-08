@@ -9,11 +9,10 @@ import type { UpdateWishlistType, CreateWishlistType } from "./wishlists.validat
 import { BadRequestError } from "@/common/errors/bad-request-error";
 
 export const wishlistsService = {
-  async getList(id: string): Promise<PublicWishlistData[]> {
+  async getList(id: string, myId: string): Promise<PublicWishlistData[]> {
+    const condition = id === myId ? { ownerId: id } : { ownerId: id, isPublic: true };
     const wishlists = await prisma.wishlist.findMany({
-      where: {
-        ownerId: id,
-      },
+      where: condition,
       select: publicWishlistSelect,
       orderBy: {
         createdAt: "desc",
