@@ -7,10 +7,14 @@ model FriendRequest {
   addressee   User   @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
   addresseeId String @map("addressee_id")
 
+  pairKey String @unique @map("pair_key")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([senderId, addresseeId])
+  @@index([senderId, createdAt])
+  @@index([addresseeId, createdAt])
   @@map("friend_requests")
 }
 
