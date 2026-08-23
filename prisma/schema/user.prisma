@@ -23,5 +23,8 @@ model User {
   friendshipsInitiated Friend[] @relation("FriendUser1")
   friendshipsReceived  Friend[] @relation("FriendUser2")
 
+  actedNotifications    FriendNotification[] @relation("FriendNotificationActor")
+  receivedNotifications FriendNotification[] @relation("FriendNotificationRecipient")
+
   @@map("users")
 }

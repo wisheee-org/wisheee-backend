@@ -1,0 +1,25 @@
+enum FriendNotificationType {
+  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_ACCEPTED
+  FRIEND_REQUEST_REJECTED
+}
+
+model FriendNotification {
+  id String @id @default(cuid())
+
+  actor   User?  @relation("FriendNotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  actorId String @map("actor_id")
+
+  recipient   User   @relation("FriendNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String @map("recipient_id")
+
+  type      FriendNotificationType
+  entityId  String
+  readAt    DateTime?              @map("read_at")
+  createdAt DateTime               @default(now()) @map("created_at")
+
+  @@index([recipientId, actorId])
+  @@index([type, entityId])
+  @@index([recipientId, readAt])
+  @@map("friend_notifications")
+}
