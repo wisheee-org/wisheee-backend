@@ -7,14 +7,14 @@ enum FriendNotificationType {
 model FriendNotification {
   id String @id @default(cuid())
 
-  actor   User?  @relation("FriendNotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
-  actorId String @map("actor_id")
+  actor   User?   @relation("FriendNotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorId String? @map("actor_id")
 
   recipient   User   @relation("FriendNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   recipientId String @map("recipient_id")
 
   type      FriendNotificationType
-  entityId  String
+  entityId  String                 @map("entity_id")
   readAt    DateTime?              @map("read_at")
   createdAt DateTime               @default(now()) @map("created_at")
 
