@@ -6,6 +6,7 @@ import { ForbiddenError } from "@/common/errors/forbidden-error";
 import { NotFoundError } from "@/common/errors/not-found-error";
 import { Prisma } from "@/generated/prisma/client";
 import { friendRequestSelect, type SendRequestResult } from "./requests.responses";
+import { friendNotificationWriter } from "../notifications/notifications.writer";
 
 function _getPair(userId: string, otherUserId: string) {
   const [user1Id, user2Id] = userId < otherUserId ? [userId, otherUserId] : [otherUserId, userId];
@@ -71,6 +72,16 @@ export const requestsService = {
           data: { user1Id: pair.user1Id, user2Id: pair.user2Id },
         });
         await tx.friendRequest.delete({ where: { id: existingRequest.id } });
+        await friendNotificationWriter.createPair(tx, {
+          actorId: senderId,
+          otherUserId: addresseeId,
+          entityId: existingRequest.id,
+          type: "FRIEND_REQUEST_ACCEPTED",
+          occurredAt: new Date(),
+        });
+        // await tx.friendNotification.deleteMany({
+        //   where: { entityId: existingRequest.id, type: "FRIEND_REQUEST_CREATED" },
+        // });
         return { status: "accepted", friend: addressee };
       }
 
@@ -79,17 +90,17 @@ export const requestsService = {
         select: friendRequestSelect,
       });
 
+      await friendNotificationWriter.createPair(tx, {
+        actorId: senderId,
+        otherUserId: addresseeId,
+        entityId: request.id,
+        type: "FRIEND_REQUEST_CREATED",
+        occurredAt: new Date(),
+      });
+
       return { status: "pending", request };
     });
   },
-
-  // async getRequests(userId: string, direction: "incoming" | "outgoing") {
-  //   return prisma.friendRequest.findMany({
-  //     where: direction === "incoming" ? { addresseeId: userId } : { senderId: userId },
-  //     select: friendRequestSelect,
-  //     orderBy: { createdAt: "desc" },
-  //   });
-  // },
 
   async acceptRequest(userId: string, requestId: string) {
     return _runSerializable(async (tx) => {
@@ -110,6 +121,48 @@ export const requestsService = {
       const pair = _getPair(request.senderId, request.addresseeId);
       await tx.friend.create({ data: { user1Id: pair.user1Id, user2Id: pair.user2Id } });
       await tx.friendRequest.delete({ where: { id: request.id } });
+      await friendNotificationWriter.createPair(tx, {
+        actorId: request.addresseeId,
+        otherUserId: request.senderId,
+        entityId: request.id,
+        type: "FRIEND_REQUEST_ACCEPTED",
+        occurredAt: new Date(),
+      });
+      // await tx.friendNotification.deleteMany({
+      //   where: { entityId: request.id, type: "FRIEND_REQUEST_CREATED" },
+      // });
+
+      return request.sender;
+    });
+  },
+
+  async rejectRequest(userId: string, requestId: string) {
+    return _runSerializable(async (tx) => {
+      const request = await tx.friendRequest.findUnique({
+        where: { id: requestId },
+        select: {
+          id: true,
+          senderId: true,
+          addresseeId: true,
+          sender: { select: publicUserSelect },
+        },
+      });
+      if (!request) throw new NotFoundError("FRIEND_REQUEST_NOT_FOUND", "Заявка в друзья не найдена.");
+      if (request.addresseeId !== userId) {
+        throw new ForbiddenError("FRIEND_REQUEST_FORBIDDEN", "Только адресат может отклонить заявку.");
+      }
+
+      await tx.friendRequest.delete({ where: { id: request.id } });
+      await friendNotificationWriter.createPair(tx, {
+        actorId: request.addresseeId,
+        otherUserId: request.senderId,
+        entityId: request.id,
+        type: "FRIEND_REQUEST_REJECTED",
+        occurredAt: new Date(),
+      });
+      // await tx.friendNotification.deleteMany({
+      //   where: { entityId: request.id, type: "FRIEND_REQUEST_CREATED" },
+      // });
 
       return request.sender;
     });
@@ -127,6 +180,9 @@ export const requestsService = {
       }
 
       await tx.friendRequest.delete({ where: { id: request.id } });
+      await tx.friendNotification.deleteMany({
+        where: { entityId: request.id },
+      });
     });
   },
 };

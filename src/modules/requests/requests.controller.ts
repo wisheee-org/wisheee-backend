@@ -13,21 +13,20 @@ export const requestsController = {
     }
   },
 
-  // async getList(req: Request, res: Response, next: NextFunction) {
-  //   try {
-  //     const { direction } = ListRequestsSchema.parse(req.query);
-  //     const data = await requestsService.getRequests(req.user.id, direction);
-
-  //     return res.status(200).json({ data });
-  //   } catch (e) {
-  //     next(e);
-  //   }
-  // },
-
   async accept(req: Request, res: Response, next: NextFunction) {
     try {
       const { requestId } = RequestIdParamsSchema.parse(req.params);
       const data = await requestsService.acceptRequest(req.user.id, requestId);
+      return res.status(200).json({ data });
+    } catch (e) {
+      next(e);
+    }
+  },
+
+  async reject(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { requestId } = RequestIdParamsSchema.parse(req.params);
+      const data = await requestsService.rejectRequest(req.user.id, requestId);
       return res.status(200).json({ data });
     } catch (e) {
       next(e);

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import type { SearchUserType, UpdateUserType } from "./user.validation";
-import { publicUserSelect, type PublicUser } from "@/shared/prisma/user.select";
+import { publicUserSelect, type PublicUserDto } from "@/shared/prisma/user.select";
 
 export const userService = {
-  async search(userId: string, queries: SearchUserType): Promise<PublicUser[]> {
+  async search(userId: string, queries: SearchUserType): Promise<PublicUserDto[]> {
     const { q, page, limit } = queries;
     return await prisma.user.findMany({
       where: {
@@ -21,7 +21,7 @@ export const userService = {
     });
   },
 
-  async getById(id: string): Promise<PublicUser | null> {
+  async getById(id: string): Promise<PublicUserDto | null> {
     return await prisma.user.findUnique({
       where: {
         id,

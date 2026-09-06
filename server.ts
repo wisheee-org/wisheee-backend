@@ -11,6 +11,7 @@ import { wishlistRouter } from "@/modules/wishlists/wishlists.routes";
 import { userRouter } from "@/modules/user/user.routes";
 import { friendsRouter } from "@/modules/friends/friends.routes";
 import { wishlistItemRouter } from "@/modules/wishlist-item/item.routes";
+import { notificationsRouter } from "@/modules/notifications/notifications.router";
 
 const app = express();
 app.use(
@@ -35,6 +36,7 @@ async function main() {
   app.use("/api/wishlists", wishlistRouter);
   app.use("/api/friends", friendsRouter);
   app.use("/api/wishlist-items", wishlistItemRouter);
+  app.use("/api/notifications", notificationsRouter);
 
   app.use(errorMiddleware);
 

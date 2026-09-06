@@ -5,7 +5,7 @@ const { requestsServiceMock } = vi.hoisted(() => ({
   requestsServiceMock: {
     acceptRequest: vi.fn(),
     deleteRequest: vi.fn(),
-    getRequests: vi.fn(),
+    rejectRequest: vi.fn(),
     sendRequest: vi.fn(),
   },
 }));
@@ -66,16 +66,6 @@ describe("requestsController", () => {
     expect(response.json).toHaveBeenCalledWith({ data: result });
   });
 
-  it("returns incoming requests by default", async () => {
-    requestsServiceMock.getRequests.mockResolvedValue([{ id: "request-1" }]);
-    const response = createResponse();
-
-    await requestsController.getList(createRequest(), response, next);
-
-    expect(requestsServiceMock.getRequests).toHaveBeenCalledWith("sender", "incoming");
-    expect(response.status).toHaveBeenCalledWith(200);
-  });
-
   it("returns the accepted friend", async () => {
     requestsServiceMock.acceptRequest.mockResolvedValue({ id: "friend" });
     const response = createResponse();
@@ -86,7 +76,18 @@ describe("requestsController", () => {
     expect(response.json).toHaveBeenCalledWith({ data: { id: "friend" } });
   });
 
-  it("returns 204 after cancellation or rejection", async () => {
+  it("returns the sender after rejecting a request", async () => {
+    requestsServiceMock.rejectRequest.mockResolvedValue({ id: "sender" });
+    const response = createResponse();
+
+    await requestsController.reject(createRequest({ params: { requestId: "request-1" } }), response, next);
+
+    expect(requestsServiceMock.rejectRequest).toHaveBeenCalledWith("sender", "request-1");
+    expect(response.status).toHaveBeenCalledWith(200);
+    expect(response.json).toHaveBeenCalledWith({ data: { id: "sender" } });
+  });
+
+  it("returns 204 after cancellation", async () => {
     requestsServiceMock.deleteRequest.mockResolvedValue(undefined);
     const response = createResponse();
 

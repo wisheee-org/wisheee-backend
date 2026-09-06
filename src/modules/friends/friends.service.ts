@@ -5,10 +5,10 @@
 //     : [addresseeId, requesterId];
 
 import { prisma } from "@/lib/prisma";
-import { publicUserSelect, type PublicUser } from "@/shared/prisma/user.select";
+import { publicUserSelect, type PublicUserDto } from "@/shared/prisma/user.select";
 
 export const friendsService = {
-  async getList(id: string): Promise<PublicUser[]> {
+  async getList(id: string): Promise<PublicUserDto[]> {
     const friends = await prisma.friend.findMany({
       where: {
         OR: [{ user1Id: id }, { user2Id: id }],

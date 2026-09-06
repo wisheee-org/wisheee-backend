@@ -8,14 +8,14 @@ import { ForbiddenError } from "@/common/errors/forbidden-error";
 import { cryptoService } from "./crypto.service";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { jwtService } from "./jwt.service";
-import { publicUserSelect, type PublicUser } from "@/shared/prisma/user.select";
+import { publicUserSelect, type PublicUserDto } from "@/shared/prisma/user.select";
 import { publicWishlistSelect } from "@/modules/wishlists/wishlists.respones";
 import { passwordService } from "./password.service";
 import { verificationTokenService } from "./verification-token.service";
 import { mailService } from "./mail.service";
 
 export const authService = {
-  async init(refreshToken: string): Promise<PublicUser | null> {
+  async init(refreshToken: string): Promise<PublicUserDto | null> {
     if (!refreshToken) return null;
 
     const tokenHash = cryptoService.sha256(refreshToken);
