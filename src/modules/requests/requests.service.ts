@@ -7,6 +7,7 @@ import { NotFoundError } from "@/common/errors/not-found-error";
 import { Prisma } from "@/generated/prisma/client";
 import { friendRequestSelect, type SendRequestResult } from "./requests.responses";
 import { friendNotificationWriter } from "../notifications/notifications.writer";
+import { notificationsPublisher } from "../notifications/notifications.publisher";
 
 function _getPair(userId: string, otherUserId: string) {
   const [user1Id, user2Id] = userId < otherUserId ? [userId, otherUserId] : [otherUserId, userId];
@@ -40,7 +41,7 @@ export const requestsService = {
 
     const pair = _getPair(senderId, addresseeId);
 
-    return _runSerializable(async (tx) => {
+    const data = await _runSerializable<{ response: SendRequestResult; senderId: string; addresseeId: string }>(async (tx) => {
       const addressee = await tx.user.findUnique({
         where: { id: addresseeId },
         select: publicUserSelect,
@@ -79,10 +80,10 @@ export const requestsService = {
           type: "FRIEND_REQUEST_ACCEPTED",
           occurredAt: new Date(),
         });
-        // await tx.friendNotification.deleteMany({
-        //   where: { entityId: existingRequest.id, type: "FRIEND_REQUEST_CREATED" },
-        // });
-        return { status: "accepted", friend: addressee };
+        await tx.friendNotification.deleteMany({
+          where: { entityId: existingRequest.id, type: "FRIEND_REQUEST_CREATED" },
+        });
+        return { response: { status: "accepted", friend: addressee }, senderId, addresseeId };
       }
 
       const request = await tx.friendRequest.create({
@@ -98,12 +99,16 @@ export const requestsService = {
         occurredAt: new Date(),
       });
 
-      return { status: "pending", request };
+      return { response: { status: "pending", request }, senderId, addresseeId };
     });
+
+    notificationsPublisher.changed([data.senderId, data.addresseeId]);
+
+    return data.response;
   },
 
   async acceptRequest(userId: string, requestId: string) {
-    return _runSerializable(async (tx) => {
+    const data = await _runSerializable(async (tx) => {
       const request = await tx.friendRequest.findUnique({
         where: { id: requestId },
         select: {
@@ -128,16 +133,20 @@ export const requestsService = {
         type: "FRIEND_REQUEST_ACCEPTED",
         occurredAt: new Date(),
       });
-      // await tx.friendNotification.deleteMany({
-      //   where: { entityId: request.id, type: "FRIEND_REQUEST_CREATED" },
-      // });
+      await tx.friendNotification.deleteMany({
+        where: { entityId: request.id, type: "FRIEND_REQUEST_CREATED" },
+      });
 
-      return request.sender;
+      return { sender: request.sender, addresseeId: request.addresseeId };
     });
+
+    notificationsPublisher.changed([data.sender.id, data.addresseeId]);
+
+    return data.sender;
   },
 
   async rejectRequest(userId: string, requestId: string) {
-    return _runSerializable(async (tx) => {
+    const data = await _runSerializable(async (tx) => {
       const request = await tx.friendRequest.findUnique({
         where: { id: requestId },
         select: {
@@ -160,16 +169,20 @@ export const requestsService = {
         type: "FRIEND_REQUEST_REJECTED",
         occurredAt: new Date(),
       });
-      // await tx.friendNotification.deleteMany({
-      //   where: { entityId: request.id, type: "FRIEND_REQUEST_CREATED" },
-      // });
+      await tx.friendNotification.deleteMany({
+        where: { entityId: request.id, type: "FRIEND_REQUEST_CREATED" },
+      });
 
-      return request.sender;
+      return { sender: request.sender, addresseeId: request.addresseeId };
     });
+
+    notificationsPublisher.changed([data.sender.id, data.addresseeId]);
+
+    return data.sender;
   },
 
   async deleteRequest(userId: string, requestId: string): Promise<void> {
-    await _runSerializable(async (tx) => {
+    const data = await _runSerializable(async (tx) => {
       const request = await tx.friendRequest.findUnique({
         where: { id: requestId },
         select: { id: true, senderId: true, addresseeId: true },
@@ -183,6 +196,10 @@ export const requestsService = {
       await tx.friendNotification.deleteMany({
         where: { entityId: request.id },
       });
+
+      return { senderId: request.senderId, addresseeId: request.addresseeId };
     });
+
+    notificationsPublisher.changed([data.senderId, data.addresseeId]);
   },
 };

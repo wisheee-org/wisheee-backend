@@ -12,8 +12,14 @@ import { userRouter } from "@/modules/user/user.routes";
 import { friendsRouter } from "@/modules/friends/friends.routes";
 import { wishlistItemRouter } from "@/modules/wishlist-item/item.routes";
 import { notificationsRouter } from "@/modules/notifications/notifications.router";
+import { Server } from "socket.io";
+import { createServer } from "http";
+import { initializeRealtimeServer } from "@/lib/realtime/realtime.server";
 
 const app = express();
+const httpServer = createServer(app);
+initializeRealtimeServer(httpServer);
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
@@ -41,7 +47,7 @@ async function main() {
   app.use(errorMiddleware);
 
   const port = process.env.PORT || 3000;
-  app.listen(port, () => {
+  httpServer.listen(port, () => {
     // logger.info(`Server is running on http://localhost:${port}`);
   });
 }
