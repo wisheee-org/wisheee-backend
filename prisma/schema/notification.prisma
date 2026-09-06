@@ -1,5 +1,5 @@
 enum FriendNotificationType {
-  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_CREATED
   FRIEND_REQUEST_ACCEPTED
   FRIEND_REQUEST_REJECTED
 }
@@ -12,6 +12,9 @@ model FriendNotification {
 
   recipient   User   @relation("FriendNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   recipientId String @map("recipient_id")
+
+  counterparty   User?   @relation("FriendNotificationCounterparty", fields: [counterpartyId], references: [id], onDelete: SetNull)
+  counterpartyId String? @map("counterparty_id")
 
   type      FriendNotificationType
   entityId  String                 @map("entity_id")
