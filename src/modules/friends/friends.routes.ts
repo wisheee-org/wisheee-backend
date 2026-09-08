@@ -6,6 +6,7 @@ import { requestsRouter } from "../requests/requests.routes";
 const router = Router();
 
 router.get("/", authMiddleware, friendsController.getList);
+router.delete("/:id", authMiddleware, friendsController.deleteFriend);
 router.use("/requests", requestsRouter);
 
 export const friendsRouter = router;

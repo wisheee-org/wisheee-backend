@@ -1,37 +1,13 @@
-import { prisma } from "@/lib/prisma";
 import { publicUserSelect } from "@/shared/prisma/user.select";
 import { BadRequestError } from "@/common/errors/bad-request-error";
 import { ConflictError } from "@/common/errors/conflict-error";
 import { ForbiddenError } from "@/common/errors/forbidden-error";
 import { NotFoundError } from "@/common/errors/not-found-error";
-import { Prisma } from "@/generated/prisma/client";
 import { friendRequestSelect, type SendRequestResult } from "./requests.responses";
 import { friendNotificationWriter } from "../notifications/notifications.writer";
 import { notificationsPublisher } from "../notifications/notifications.publisher";
-
-function _getPair(userId: string, otherUserId: string) {
-  const [user1Id, user2Id] = userId < otherUserId ? [userId, otherUserId] : [otherUserId, userId];
-  return { user1Id, user2Id, pairKey: `${user1Id}:${user2Id}` };
-}
-
-function _isRetryableTransactionError(error: unknown): error is { code: "P2002" | "P2034" } {
-  if (typeof error !== "object" || error === null || !("code" in error)) return false;
-  return error.code === "P2002" || error.code === "P2034";
-}
-
-async function _runSerializable<T>(operation: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      return await prisma.$transaction(operation, {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-      });
-    } catch (e) {
-      if (attempt === 1 || !_isRetryableTransactionError(e)) throw e;
-    }
-  }
-
-  throw new Error("Unreachable transaction retry state");
-}
+import { getPair } from "@/common/utils/get-ids-pair";
+import { runSerializable } from "@/common/utils/run-serializable";
 
 export const requestsService = {
   async sendRequest(senderId: string, addresseeId: string): Promise<SendRequestResult> {
@@ -39,9 +15,9 @@ export const requestsService = {
       throw new BadRequestError("SELF_FRIEND_REQUEST", "Нельзя отправить заявку в друзья самому себе.");
     }
 
-    const pair = _getPair(senderId, addresseeId);
+    const pair = getPair(senderId, addresseeId);
 
-    const data = await _runSerializable<{ response: SendRequestResult; senderId: string; addresseeId: string }>(async (tx) => {
+    const data = await runSerializable<{ response: SendRequestResult; senderId: string; addresseeId: string }>(async (tx) => {
       const addressee = await tx.user.findUnique({
         where: { id: addresseeId },
         select: publicUserSelect,
@@ -108,7 +84,7 @@ export const requestsService = {
   },
 
   async acceptRequest(userId: string, requestId: string) {
-    const data = await _runSerializable(async (tx) => {
+    const data = await runSerializable(async (tx) => {
       const request = await tx.friendRequest.findUnique({
         where: { id: requestId },
         select: {
@@ -123,7 +99,7 @@ export const requestsService = {
         throw new ForbiddenError("FRIEND_REQUEST_FORBIDDEN", "Только адресат может принять заявку.");
       }
 
-      const pair = _getPair(request.senderId, request.addresseeId);
+      const pair = getPair(request.senderId, request.addresseeId);
       await tx.friend.create({ data: { user1Id: pair.user1Id, user2Id: pair.user2Id } });
       await tx.friendRequest.delete({ where: { id: request.id } });
       await friendNotificationWriter.createPair(tx, {
@@ -146,7 +122,7 @@ export const requestsService = {
   },
 
   async rejectRequest(userId: string, requestId: string) {
-    const data = await _runSerializable(async (tx) => {
+    const data = await runSerializable(async (tx) => {
       const request = await tx.friendRequest.findUnique({
         where: { id: requestId },
         select: {
@@ -182,7 +158,7 @@ export const requestsService = {
   },
 
   async deleteRequest(userId: string, requestId: string): Promise<void> {
-    const data = await _runSerializable(async (tx) => {
+    const data = await runSerializable(async (tx) => {
       const request = await tx.friendRequest.findUnique({
         where: { id: requestId },
         select: { id: true, senderId: true, addresseeId: true },
