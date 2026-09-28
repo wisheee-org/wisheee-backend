@@ -1,4 +1,4 @@
-import type { PublicUserDto } from "@/shared/prisma/user.select";
+import type { MeDto } from "@/shared/prisma/user.select";
 
 export interface AuthTokens {
   accessToken: string;
@@ -6,5 +6,5 @@ export interface AuthTokens {
 }
 
 export interface SignInResponseDto extends AuthTokens {
-  user: PublicUserDto;
+  user: MeDto;
 }

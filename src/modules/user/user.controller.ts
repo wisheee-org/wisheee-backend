@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { userService } from "./user.service";
 import { BadRequestError } from "@/common/errors/bad-request-error";
-import { SearchUsersSchema, UpdateUserSchema, type SearchUserType } from "./user.validation";
+import { SearchUsersSchema, UpdateUserSchema } from "./user.validation";
 
 type GetByIdParams = {
   userId: string;
@@ -10,7 +10,7 @@ type GetByIdParams = {
 export const userController = {
   async me(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await userService.getById(req.user.id);
+      const data = await userService.getMe(req.user.id);
       return res.status(200).json({
         data,
       });

@@ -8,30 +8,44 @@ import { ForbiddenError } from "@/common/errors/forbidden-error";
 import { cryptoService } from "./crypto.service";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { jwtService } from "./jwt.service";
-import { publicUserSelect, type PublicUserDto } from "@/shared/prisma/user.select";
-import { publicWishlistSelect } from "@/modules/wishlists/wishlists.respones";
+import { meSelect, publicUserSelect, type MeDto } from "@/shared/prisma/user.select";
 import { passwordService } from "./password.service";
 import { verificationTokenService } from "./verification-token.service";
 import { mailService } from "./mail.service";
 
 export const authService = {
-  async init(refreshToken: string): Promise<PublicUserDto | null> {
+  async init(refreshToken: string): Promise<MeDto | null> {
     if (!refreshToken) return null;
 
     const tokenHash = cryptoService.sha256(refreshToken);
-    const data = await prisma.refreshToken.findUnique({
+    const tokenData = await prisma.refreshToken.findUnique({
       where: { tokenHash },
       select: {
+        expiresAt: true,
         user: {
-          select: publicUserSelect,
+          select: {
+            ...meSelect,
+            _count: {
+              select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true, reservedItems: true },
+            },
+          },
         },
       },
     });
-    if (data) return data.user;
-    return null;
+
+    if (!tokenData || tokenData.expiresAt <= new Date()) return null;
+
+    const { _count, ...user } = tokenData.user;
+
+    return {
+      ...user,
+      quantityOfFriends: _count.friendshipsInitiated + _count.friendshipsReceived,
+      quantityOfWishlists: _count.wishlists,
+      quantityOfReservedGifts: _count.reservedItems,
+    } satisfies MeDto;
   },
 
-  async signUp(dto: SignUpSchemaType) {
+  async signUp(dto: SignUpSchemaType): Promise<void> {
     const [existingEmail, existingUsername] = await Promise.all([
       prisma.user.findUnique({ where: { email: dto.email } }),
       prisma.user.findUnique({ where: { username: dto.username } }),
@@ -51,7 +65,7 @@ export const authService = {
           passwordHash: passwordHash,
           username: dto.username,
         },
-        select: publicUserSelect,
+        select: meSelect,
       });
 
       await tx.emailVerificationToken.create({
@@ -68,7 +82,7 @@ export const authService = {
     mailService.sendVerificationEmail(user.email, token);
   },
 
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string): Promise<void> {
     const tokenHash = cryptoService.sha256(token);
 
     const tokenData = await prisma.emailVerificationToken.findUnique({
@@ -120,7 +134,7 @@ export const authService = {
     });
   },
 
-  async resendVerification(email: string) {
+  async resendVerification(email: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: {
         email,
@@ -154,26 +168,40 @@ export const authService = {
   },
 
   async signIn(dto: SignInSchemaType): Promise<SignInResponseDto> {
-    const user = await prisma.user.findUnique({
+    const meData = await prisma.user.findUnique({
       where: {
         email: dto.email,
       },
-      include: {
-        wishlists: { select: publicWishlistSelect },
+      select: {
+        ...meSelect,
+        emailVerified: true,
+        passwordHash: true,
+        _count: {
+          select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true, reservedItems: true },
+        },
       },
     });
 
-    if (!user) throw new UnauthorizedError("INVALID_CREDENTIALS", "Неверные email или пароль.");
-    if (!user.emailVerified) throw new ForbiddenError("EMAIL_NOT_VERIFIED", "Подтвердите email перед входом.");
+    if (!meData) throw new UnauthorizedError("INVALID_CREDENTIALS", "Неверные email или пароль.");
+    if (!meData.emailVerified) throw new ForbiddenError("EMAIL_NOT_VERIFIED", "Подтвердите email перед входом.");
 
-    const isValidPassword = await passwordService.compare(dto.password, user.passwordHash);
+    const isValidPassword = await passwordService.compare(dto.password, meData.passwordHash);
     if (!isValidPassword) throw new UnauthorizedError("INVALID_CREDENTIALS", "Неверные email или пароль.");
 
-    const { passwordHash, emailVerified, ...publicUser } = user;
+    const { passwordHash, emailVerified, _count, ...me } = meData;
 
-    const { accessToken, refreshToken } = await _createTokens(prisma, publicUser.id);
+    const { accessToken, refreshToken } = await _createTokens(prisma, me.id);
 
-    return { user: publicUser, accessToken, refreshToken };
+    return {
+      user: {
+        ...me,
+        quantityOfWishlists: _count.wishlists,
+        quantityOfFriends: _count.friendshipsInitiated + _count.friendshipsReceived,
+        quantityOfReservedGifts: _count.reservedItems,
+      },
+      accessToken,
+      refreshToken,
+    };
   },
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -212,7 +240,6 @@ export const authService = {
   },
 
   async logout(refreshToken: string) {
-    // if (!refreshToken) throw new UnauthorizedError("NO_SESSION", "Недействительный refresh token.");
     if (!refreshToken) return;
     const tokenHash = cryptoService.sha256(refreshToken);
     await prisma.refreshToken.deleteMany({
