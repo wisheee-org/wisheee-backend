@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { friendNotificationWriterMock, prismaMock } = vi.hoisted(() => ({
+const { friendNotificationWriterMock, prismaMock, realtimeServerFake } = vi.hoisted(() => ({
   friendNotificationWriterMock: {
     createPair: vi.fn(),
+  },
+  realtimeServerFake: {
+    to: () => ({
+      emit: () => undefined,
+    }),
   },
   prismaMock: {
     $transaction: vi.fn(),
@@ -29,6 +34,9 @@ const { friendNotificationWriterMock, prismaMock } = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("../notifications/notifications.writer", () => ({
   friendNotificationWriter: friendNotificationWriterMock,
+}));
+vi.mock("@/lib/realtime/realtime.server", () => ({
+  getRealtimeServer: () => realtimeServerFake,
 }));
 
 import { requestsService } from "./requests.service";
