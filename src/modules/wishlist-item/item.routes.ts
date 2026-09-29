@@ -9,4 +9,6 @@ router.post("/", authMiddleware, wishlistItemController.create);
 router.patch("/:itemId", authMiddleware, wishlistItemController.update);
 router.delete("/:itemId", authMiddleware, wishlistItemController.delete);
 
+router.patch("/:itemId/reservation", authMiddleware, wishlistItemController.reserve);
+
 export const wishlistItemRouter = router;

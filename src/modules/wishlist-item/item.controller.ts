@@ -64,4 +64,18 @@ export const wishlistItemController = {
       next(e);
     }
   },
+
+  async reserve(req: Request<GetByIdParams>, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+      const itemId = req.params.itemId;
+      if (!itemId) throw new BadRequestError("NO_WISHLIST_ITEM_ID", "Нет id подарка.");
+
+      const reserved = await wishlistItemService.reserve(userId, itemId);
+
+      return res.status(200).json({ data: reserved });
+    } catch (e) {
+      next(e);
+    }
+  },
 };
