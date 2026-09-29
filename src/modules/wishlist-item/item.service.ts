@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { CreateWishlistItemType, UpdateWishlistItemType } from "./item.validation";
 import { wishlistItemSelect, type WishlistItemType } from "./item.responses";
 import { BadRequestError } from "@/common/errors/bad-request-error";
+import { ConflictError } from "@/common/errors/conflict-error";
 
 export const wishlistItemService = {
   async getList(myId: string, wishlistId: string): Promise<WishlistItemType[] | null> {
@@ -85,5 +86,32 @@ export const wishlistItemService = {
         wishlistId: true,
       },
     });
+  },
+
+  async reserve(userId: string, itemId: string): Promise<WishlistItemType> {
+    const item = await prisma.wishlistItem.findFirst({
+      where: { id: itemId },
+      select: {
+        ...wishlistItemSelect,
+        wishlist: { select: { ownerId: true } },
+      },
+    });
+    if (!item) throw new BadRequestError("NO_WISHLIST_ITEM", "Проверьте правильность введенных данных.");
+    if (item.wishlist.ownerId === userId)
+      throw new BadRequestError("OWNER_CANNOT_RESERVE_HIS_ITEM", "Владелец вишлиста не может резервировать свой подарок.");
+    if (item.reserverId && item.reserverId !== userId)
+      throw new ConflictError("ALREADY_RESERVED", "Подарок уже забронирован другим пользователем.");
+
+    const nextReserverId = item.reserverId === userId ? null : userId;
+    const updated = await prisma.wishlistItem.updateMany({
+      where: { id: itemId, reserverId: item.reserverId },
+      data: { reserverId: nextReserverId },
+    });
+
+    if (updated.count === 0)
+      throw new ConflictError("RESERVATION_CHANGED", "Состояние брони уже изменилось. Обновите страницу.");
+
+    const { wishlist: _wishlist, ...wishlistItem } = item;
+    return { ...wishlistItem, reserverId: nextReserverId };
   },
 };
