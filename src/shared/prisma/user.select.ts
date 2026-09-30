@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import type { WishlistItemType } from "@/modules/wishlist-item/item.responses";
 
 export const publicUserSelect = {
   id: true,
@@ -10,6 +11,9 @@ export const publicUserSelect = {
 export const meSelect = {
   ...publicUserSelect,
   email: true,
+  reservedItems: {
+    include: { wishlist: { select: { owner: { select: publicUserSelect } } } },
+  },
 } as const;
 
 export type PublicUserDto = Prisma.UserGetPayload<{
@@ -23,9 +27,15 @@ export type PublicUserExtraDto = Prisma.UserGetPayload<{
   quantityOfPublicWishlists: number;
 };
 
+const { reservedItems, ...meSelectDto } = meSelect;
+export type ReservedWishlistItemDto = WishlistItemType & {
+  owner: PublicUserDto;
+};
+
 export type MeDto = Prisma.UserGetPayload<{
-  select: typeof meSelect;
+  select: typeof meSelectDto;
 }> & {
+  reservedItems: ReservedWishlistItemDto[];
   quantityOfFriends: number;
   quantityOfWishlists: number;
   quantityOfReservedGifts: number;

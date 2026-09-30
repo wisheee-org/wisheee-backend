@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { SearchUserType, UpdateUserType } from "./user.validation";
 import { meSelect, publicUserSelect, type MeDto, type PublicUserDto } from "@/shared/prisma/user.select";
+import { mapMeDto } from "@/shared/prisma/user.mapper";
 
 export const userService = {
   async search(userId: string, queries: SearchUserType): Promise<PublicUserDto[]> {
@@ -29,21 +30,14 @@ export const userService = {
       select: {
         ...meSelect,
         _count: {
-          select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true, reservedItems: true },
+          select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true },
         },
       },
     });
 
     if (!meData) return null;
 
-    const { _count, ...me } = meData;
-
-    return {
-      ...me,
-      quantityOfFriends: _count.friendshipsInitiated + _count.friendshipsReceived,
-      quantityOfReservedGifts: _count.reservedItems,
-      quantityOfWishlists: _count.wishlists,
-    } satisfies MeDto;
+    return mapMeDto(meData);
   },
 
   async getById(id: string): Promise<PublicUserDto | null> {

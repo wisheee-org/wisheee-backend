@@ -9,6 +9,7 @@ import { cryptoService } from "./crypto.service";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { jwtService } from "./jwt.service";
 import { meSelect, publicUserSelect, type MeDto } from "@/shared/prisma/user.select";
+import { mapMeDto } from "@/shared/prisma/user.mapper";
 import { passwordService } from "./password.service";
 import { verificationTokenService } from "./verification-token.service";
 import { mailService } from "./mail.service";
@@ -26,7 +27,7 @@ export const authService = {
           select: {
             ...meSelect,
             _count: {
-              select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true, reservedItems: true },
+              select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true },
             },
           },
         },
@@ -35,14 +36,7 @@ export const authService = {
 
     if (!tokenData || tokenData.expiresAt <= new Date()) return null;
 
-    const { _count, ...user } = tokenData.user;
-
-    return {
-      ...user,
-      quantityOfFriends: _count.friendshipsInitiated + _count.friendshipsReceived,
-      quantityOfWishlists: _count.wishlists,
-      quantityOfReservedGifts: _count.reservedItems,
-    } satisfies MeDto;
+    return mapMeDto(tokenData.user);
   },
 
   async signUp(dto: SignUpSchemaType): Promise<void> {
@@ -177,7 +171,7 @@ export const authService = {
         emailVerified: true,
         passwordHash: true,
         _count: {
-          select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true, reservedItems: true },
+          select: { friendshipsInitiated: true, friendshipsReceived: true, wishlists: true },
         },
       },
     });
@@ -188,17 +182,10 @@ export const authService = {
     const isValidPassword = await passwordService.compare(dto.password, meData.passwordHash);
     if (!isValidPassword) throw new UnauthorizedError("INVALID_CREDENTIALS", "Неверные email или пароль.");
 
-    const { passwordHash, emailVerified, _count, ...me } = meData;
-
-    const { accessToken, refreshToken } = await _createTokens(prisma, me.id);
+    const { accessToken, refreshToken } = await _createTokens(prisma, meData.id);
 
     return {
-      user: {
-        ...me,
-        quantityOfWishlists: _count.wishlists,
-        quantityOfFriends: _count.friendshipsInitiated + _count.friendshipsReceived,
-        quantityOfReservedGifts: _count.reservedItems,
-      },
+      user: mapMeDto(meData),
       accessToken,
       refreshToken,
     };
